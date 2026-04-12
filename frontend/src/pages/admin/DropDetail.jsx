@@ -9,7 +9,7 @@ const STATUS_TRANSITIONS = {
   awaiting_uploads: ['submitted'],
   submitted: ['processing'],
   processing: ['completed'],
-  completed: [],
+  completed: ['processing'],
 };
 
 export default function AdminDropDetail() {
@@ -22,6 +22,8 @@ export default function AdminDropDetail() {
   const [csvFile, setCsvFile] = useState(null);
   const [isCsvUploading, setIsCsvUploading] = useState(false);
   const [csvProgress, setCsvProgress] = useState(0);
+
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (!pb.authStore.isValid) {
@@ -118,6 +120,8 @@ export default function AdminDropDetail() {
   const copyDropLink = () => {
     const url = `${window.location.origin}/drop/${drop.token}`;
     navigator.clipboard.writeText(url);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   };
 
   if (loading) {
@@ -182,7 +186,7 @@ export default function AdminDropDetail() {
               </div>
               <div className="flex gap-sm" style={{ display: 'flex', gap: 'var(--space-sm)' }}>
                 <button className="btn btn--secondary" onClick={copyDropLink} style={{ fontSize: '0.8rem' }}>
-                  📋 Copy Drop Link
+                  {linkCopied ? '✓ Copied!' : '📋 Copy Drop Link'}
                 </button>
                 {nextStatuses.map(s => (
                   <button
@@ -263,6 +267,48 @@ export default function AdminDropDetail() {
               </>
             )}
           </div>
+
+          {/* CSV Results Indicator */}
+          {drop.result_key && (
+            <div className="card mb-lg" style={{ borderColor: 'var(--status-completed)', background: 'rgba(16, 185, 129, 0.05)', marginBottom: 'var(--space-xl)' }}>
+              <div className="flex items-center justify-between" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+                <div className="flex items-center gap-md" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--status-completed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', color: 'white', boxShadow: '0 0 20px rgba(16, 185, 129, 0.3)' }}>
+                    📊
+                  </div>
+                  <div>
+                    <h4 style={{ color: 'var(--status-completed)', margin: '0 0 4px 0' }}>Results File Attached</h4>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                      <code style={{ color: 'var(--text-main)', background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>
+                        {drop.result_key.split('/').pop().replace(/^\d+_/, '')}
+                      </code>
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  className="btn" 
+                  style={{ background: 'var(--status-completed)', color: 'white', fontSize: '0.8rem' }}
+                  title="Download Processed Results"
+                  onClick={async () => {
+                    try {
+                      const { presignedUrl } = await getPresignedDownloadUrl(drop.result_key, drop.token);
+                      const a = document.createElement('a');
+                      a.href = presignedUrl;
+                      a.download = drop.result_key.split('/').pop().replace(/^\d+_/, '');
+                      a.target = '_blank';
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    } catch (e) {
+                      alert('Failed to get download link: ' + e.message);
+                    }
+                  }}
+                >
+                  ⬇ Download CSV
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Video list */}
           <h3 className="mb-md" style={{ marginBottom: 'var(--space-md)' }}>

@@ -15,6 +15,8 @@ export default function AdminDashboard() {
   const [drops, setDrops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [selectedDrops, setSelectedDrops] = useState([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!pb.authStore.isValid) {
@@ -41,6 +43,49 @@ export default function AdminDashboard() {
   const handleLogout = () => {
     pb.authStore.clear();
     navigate('/admin');
+  };
+
+  const toggleSelect = (id, e) => {
+    e.stopPropagation();
+    setSelectedDrops(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = (e, currentList) => {
+    e.stopPropagation();
+    const allIds = currentList.map(d => d.id);
+    const areAllSelected = allIds.length > 0 && allIds.every(id => selectedDrops.includes(id));
+    if (areAllSelected) {
+      setSelectedDrops(prev => prev.filter(id => !allIds.includes(id)));
+    } else {
+      const newSelections = new Set([...selectedDrops, ...allIds]);
+      setSelectedDrops(Array.from(newSelections));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedDrops.length === 0) return;
+    if (!confirm(`WARNING: Are you absolutely sure you want to permanently delete ${selectedDrops.length} drops and ALL associated videos? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      for (const dropId of selectedDrops) {
+        const vids = await pb.collection('videos').getFullList({ filter: `drop="${dropId}"` });
+        for (const v of vids) {
+          await pb.collection('videos').delete(v.id);
+        }
+        await pb.collection('drops').delete(dropId);
+      }
+      setSelectedDrops([]);
+      await fetchDrops();
+    } catch (e) {
+      alert('Error during bulk deletion: ' + e.message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const filteredDrops = filter === 'all' ? drops : drops.filter(d => d.status === filter);
@@ -94,6 +139,23 @@ export default function AdminDashboard() {
             ))}
           </div>
 
+          {/* Bulk Actions Banner */}
+          {selectedDrops.length > 0 && (
+            <div className="banner banner--error flex items-center justify-between mb-lg" style={{ animation: 'fadeIn 0.2s ease-out', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+              <div>
+                <strong style={{ color: '#fca5a5' }}>{selectedDrops.length} drop{selectedDrops.length !== 1 ? 's' : ''} selected</strong>
+              </div>
+              <button 
+                className="btn btn--danger" 
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+                style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+              >
+                {isDeleting ? 'Deleting...' : '🗑 Delete Selected'}
+              </button>
+            </div>
+          )}
+
           {/* Table */}
           {loading ? (
             <div className="text-center" style={{ padding: 'var(--space-3xl)' }}>
@@ -108,6 +170,14 @@ export default function AdminDashboard() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th style={{ width: '40px', textAlign: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        onChange={(e) => toggleSelectAll(e, filteredDrops)}
+                        checked={filteredDrops.length > 0 && filteredDrops.every(d => selectedDrops.includes(d.id))}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
                     <th>Token</th>
                     <th>Uploader</th>
                     <th>Status</th>
@@ -122,7 +192,16 @@ export default function AdminDashboard() {
                       key={drop.id}
                       className="table__row--clickable"
                       onClick={() => navigate(`/admin/drop/${drop.id}`)}
+                      style={{ background: selectedDrops.includes(drop.id) ? 'rgba(239, 68, 68, 0.08)' : '' }}
                     >
+                      <td onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedDrops.includes(drop.id)}
+                          onChange={(e) => toggleSelect(drop.id, e)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </td>
                       <td>
                         <code style={{ color: 'var(--text-accent)', fontSize: '0.8rem' }}>
                           {drop.token?.substring(0, 12)}…
