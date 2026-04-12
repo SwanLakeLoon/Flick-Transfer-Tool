@@ -111,6 +111,7 @@ export default function AdminDashboard() {
                 <thead>
                   <tr>
                     <th>Token</th>
+                    <th>Uploader</th>
                     <th>Status</th>
                     <th>Videos</th>
                     <th>Created</th>
@@ -128,6 +129,9 @@ export default function AdminDashboard() {
                         <code style={{ color: 'var(--text-accent)', fontSize: '0.8rem' }}>
                           {drop.token?.substring(0, 12)}…
                         </code>
+                      </td>
+                      <td style={{ color: drop.uploader_name ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                        {drop.uploader_name || 'Anonymous'}
                       </td>
                       <td>
                         <span className={`badge badge--${drop.status}`}>

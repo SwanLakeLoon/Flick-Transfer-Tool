@@ -95,6 +95,7 @@ def main():
                 {"name": "token",       "type": "text", "required": True, "max": 128, "presentable": True},
                 {"name": "status",      "type": "select", "required": True,
                  "values": ["awaiting_uploads", "submitted", "processing", "completed"], "maxSelect": 1},
+                {"name": "uploader_name","type": "text"},
                 {"name": "result_key",  "type": "text"},
                 {"name": "video_count", "type": "number"},
                 {"name": "expires_at",  "type": "date"},
