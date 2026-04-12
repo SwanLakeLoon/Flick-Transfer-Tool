@@ -28,6 +28,14 @@ Deploying the Flick File Transfer Tool requires spinning up components across a 
    Log into your Hetzner Cloud Console, navigate to Object Storage, and create a new bucket (e.g., `flick-inbox`). Note the region (e.g., `fsn1`).
 2. **Generate Credentials:**
    Create an S3 Access Key and Secret Key. Keep these secure—they will only ever be placed in the Sidecar and your local `.env`.
+3. **Configure Bucket CORS:**
+   To allow Vercel and your local development environment to successfully stream large video chunks directly to Hetzner Object Storage, you must apply the `cors.json` policy to your bucket. You can execute this natively via the AWS CLI using your endpoint and credentials:
+   ```bash
+   aws s3api put-bucket-cors \
+     --bucket flick-inbox \
+     --cors-configuration file://cors.json \
+     --endpoint-url="https://hel1.your-objectstorage.com"
+   ```
 
 
 ### Phase 2: Metadata Layer (PikaPods + PocketBase)

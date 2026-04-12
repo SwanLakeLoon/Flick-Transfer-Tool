@@ -146,7 +146,7 @@ def main():
             "createRule": "",  # open
             "listRule":   '@request.auth.role ?= "admin" || token = @request.query.qtoken',
             "viewRule":   '@request.auth.role ?= "admin" || token = @request.query.qtoken',
-            "updateRule": '@request.auth.role ?= "admin"',
+            "updateRule": '@request.auth.role ?= "admin" || token = @request.query.qtoken',
             "deleteRule": '@request.auth.role ?= "admin"',
         })
 
@@ -158,8 +158,8 @@ def main():
             "createRule": "",  # open
             "listRule":   '@request.auth.role ?= "admin" || drop.token = @request.query.qtoken',
             "viewRule":   '@request.auth.role ?= "admin" || drop.token = @request.query.qtoken',
-            "updateRule": '@request.auth.role ?= "admin"',
-            "deleteRule": '@request.auth.role ?= "admin"',
+            "updateRule": '@request.auth.role ?= "admin" || drop.token = @request.query.qtoken',
+            "deleteRule": '@request.auth.role ?= "admin" || drop.token = @request.query.qtoken',
         })
 
         # Users: self + admin

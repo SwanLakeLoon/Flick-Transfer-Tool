@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
   try {
     const pbRes = await fetch(
-      `${PB_URL}/api/collections/drops/records?filter=(token="${drop_token}" %26%26 status="awaiting_uploads")&qtoken=${drop_token}&perPage=1`
+      `${PB_URL}/api/collections/drops/records?filter=(token="${drop_token}" %26%26 (status="awaiting_uploads" || status="submitted"))&qtoken=${drop_token}&perPage=1`
     );
     const pbData = await pbRes.json();
     

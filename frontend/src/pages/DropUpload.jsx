@@ -125,15 +125,16 @@ export default function DropUpload() {
 
     // Refresh video list and drop
     await fetchDrop();
+    setUploads(prev => prev.filter(u => u.status !== 'done'));
     setIsUploading(false);
   }, [drop, token, uploads, fetchDrop]);
 
   // Submit for processing
   const handleSubmit = async () => {
     if (!drop) return;
-    if (!confirm('Submit this batch for processing? You will not be able to add more files after this.')) return;
+    if (!confirm('Submit this batch for processing?')) return;
     try {
-      await pb.collection('drops').update(drop.id, { status: 'submitted' });
+      await pb.collection('drops').update(drop.id, { status: 'submitted' }, { qtoken: token });
       fetchDrop();
     } catch (e) {
       alert('Failed to submit. Please try again.');
@@ -245,21 +246,19 @@ export default function DropUpload() {
             </div>
           )}
 
-          {/* Processing / Submitted — waiting state */}
-          {(drop.status === 'processing' || drop.status === 'submitted') && (
+          {/* Processing — waiting state */}
+          {(drop.status === 'processing') && (
             <div className="card card--elevated text-center" style={{ padding: 'var(--space-2xl)' }}>
               <div className="spinner spinner--large" style={{ margin: '0 auto var(--space-lg)' }} />
-              <h3>
-                {drop.status === 'processing' ? 'Your videos are being processed…' : 'Waiting for an admin to begin processing…'}
-              </h3>
+              <h3>Your videos are being processed…</h3>
               <p className="text-muted mt-md">
                 Check back later. This page will show your results when they're ready.
               </p>
             </div>
           )}
 
-          {/* Upload zone (only when awaiting) */}
-          {drop.status === 'awaiting_uploads' && (
+          {/* Upload zone (when awaiting or submitted) */}
+          {(drop.status === 'awaiting_uploads' || drop.status === 'submitted') && (
             <>
               <FileDropzone onFilesSelected={handleFilesSelected} disabled={isUploading} />
 

@@ -59,10 +59,16 @@ export async function getPresignedDownloadUrl(s3Key, dropToken) {
 export function uploadToS3(presignedUrl, file, onProgress, signal) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    let lastUpdate = 0;
 
     xhr.upload.addEventListener('progress', (e) => {
       if (e.lengthComputable && onProgress) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
+        const now = Date.now();
+        // Update at most every 200ms or 100% to prevent React re-render freezing
+        if (now - lastUpdate > 200 || e.loaded === e.total) {
+          lastUpdate = now;
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
       }
     });
 
