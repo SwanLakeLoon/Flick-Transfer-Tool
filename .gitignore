@@ -1,0 +1,44 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+.venv/
+
+# Environment
+.env
+*.env.local
+
+# PocketBase data
+backend/pb_data/
+backend/pocketbase
+
+# Build output
+frontend/dist/
+sidecar/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Batch data
+*.MOV
+*.mp4
+*.avi
+*.csv
+!.env.example
+batch_folder/
+_test_storage/

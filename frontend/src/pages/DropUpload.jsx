@@ -1,0 +1,345 @@
+import { useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import Navbar from '../components/Navbar';
+import FileDropzone from '../components/FileDropzone';
+import UploadProgress from '../components/UploadProgress';
+import pb from '../utils/pb';
+import { uploadFile, formatBytes, getPresignedDownloadUrl } from '../utils/s3Upload';
+
+// Maximum files per drop
+const MAX_FILES = 50;
+const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
+
+export default function DropUpload() {
+  const { token } = useParams();
+  const [drop, setDrop] = useState(null);
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Upload state: array of { file, status, progress, errorMsg, s3Key }
+  const [uploads, setUploads] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Fetch the drop and its videos
+  const fetchDrop = useCallback(async () => {
+    try {
+      // Pass token as query param for PB API rule: `token = @request.query.token`
+      const results = await pb.collection('drops').getList(1, 1, {
+        filter: `token="${token}"`,
+        qtoken: token,
+      });
+      if (results.items.length === 0) {
+        setError('Drop not found. Please check your link.');
+        setLoading(false);
+        return;
+      }
+      const dropRecord = results.items[0];
+      setDrop(dropRecord);
+
+      const vidList = await pb.collection('videos').getFullList({
+        filter: `drop="${dropRecord.id}"`,
+        sort: '-created',
+        qtoken: token,
+      });
+      setVideos(vidList);
+      setLoading(false);
+    } catch (e) {
+      if (e.isAbort) return;
+      setError('Failed to load submission. Please check your link and try again.');
+      console.error(e);
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchDrop(); }, [fetchDrop]);
+
+  // Handle new files selected from dropzone
+  const handleFilesSelected = useCallback((files) => {
+    const existing = uploads.length + videos.length;
+    if (existing + files.length > MAX_FILES) {
+      alert(`Maximum ${MAX_FILES} files per submission. You can add ${MAX_FILES - existing} more.`);
+      return;
+    }
+
+    const newUploads = [];
+    for (const f of files) {
+      if (f.size > MAX_FILE_SIZE) {
+        alert(`${f.name} exceeds the 2GB file size limit.`);
+        continue;
+      }
+      // Check for duplicates
+      const alreadyExists = videos.some(v => v.original_name === f.name && v.size_bytes === f.size) ||
+                            uploads.some(u => u.file.name === f.name && u.file.size === f.size);
+      if (alreadyExists) {
+        alert(`${f.name} appears to already be uploaded or queued.`);
+        continue;
+      }
+      newUploads.push({ file: f, status: 'pending', progress: 0, errorMsg: null, s3Key: null });
+    }
+    setUploads(prev => [...prev, ...newUploads]);
+  }, [uploads, videos]);
+
+  // Remove a pending file
+  const handleRemove = useCallback((idx) => {
+    setUploads(prev => prev.filter((_, i) => i !== idx));
+  }, []);
+
+  // Start uploading all pending files
+  const handleUploadAll = useCallback(async () => {
+    if (!drop) return;
+    setIsUploading(true);
+
+    const pendingIndices = uploads
+      .map((u, i) => (u.status === 'pending' || u.status === 'error') ? i : -1)
+      .filter(i => i >= 0);
+
+    for (const idx of pendingIndices) {
+      const upload = uploads[idx];
+      // Mark as uploading
+      setUploads(prev => prev.map((u, i) => i === idx ? { ...u, status: 'uploading', progress: 0, errorMsg: null } : u));
+
+      try {
+        const { s3Key } = await uploadFile(
+          token,
+          upload.file,
+          (pct) => setUploads(prev => prev.map((u, i) => i === idx ? { ...u, progress: pct } : u)),
+        );
+
+        // Create metadata record in PocketBase
+        await pb.collection('videos').create({
+          drop: drop.id,
+          s3_key: s3Key,
+          original_name: upload.file.name,
+          size_bytes: upload.file.size,
+          content_type: upload.file.type || 'application/octet-stream',
+          uploaded_at: new Date().toISOString(),
+        });
+
+        setUploads(prev => prev.map((u, i) => i === idx ? { ...u, status: 'done', progress: 100, s3Key } : u));
+      } catch (e) {
+        setUploads(prev => prev.map((u, i) => i === idx ? { ...u, status: 'error', errorMsg: e.message } : u));
+      }
+    }
+
+    // Refresh video list and drop
+    await fetchDrop();
+    setIsUploading(false);
+  }, [drop, token, uploads, fetchDrop]);
+
+  // Submit for processing
+  const handleSubmit = async () => {
+    if (!drop) return;
+    if (!confirm('Submit this batch for processing? You will not be able to add more files after this.')) return;
+    try {
+      await pb.collection('drops').update(drop.id, { status: 'submitted' });
+      fetchDrop();
+    } catch (e) {
+      alert('Failed to submit. Please try again.');
+    }
+  };
+
+  // Download results CSV
+  const handleDownloadCSV = async () => {
+    if (!drop?.result_key) return;
+    try {
+      const { presignedUrl } = await getPresignedDownloadUrl(drop.result_key, token);
+      window.open(presignedUrl, '_blank');
+    } catch (e) {
+      alert('Failed to get download link: ' + e.message);
+    }
+  };
+
+  // Copy magic link
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  // Determine UI state
+  const isLocked = drop && drop.status !== 'awaiting_uploads';
+  const pendingCount = uploads.filter(u => u.status === 'pending' || u.status === 'error').length;
+  const doneCount = uploads.filter(u => u.status === 'done').length;
+  const totalVideoCount = videos.length + doneCount;
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="page">
+          <div className="container container--narrow text-center">
+            <div className="spinner spinner--large" style={{ margin: '80px auto' }} />
+            <p className="text-muted mt-md">Loading your submission…</p>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Navbar />
+        <main className="page">
+          <div className="container container--narrow text-center">
+            <div className="status-hero">
+              <div className="status-hero__icon">🔍</div>
+              <h2>Submission Not Found</h2>
+              <p className="text-muted mt-md">{error}</p>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Navbar />
+      <main className="page">
+        <div className="container container--narrow">
+          {/* Status header */}
+          <div className="flex items-center justify-between mb-lg">
+            <div>
+              <h2>
+                {drop.status === 'completed' ? '📊 Results Ready' :
+                 drop.status === 'processing' ? '⏳ Processing…' :
+                 drop.status === 'submitted' ? '📬 Submitted' :
+                 '📤 Upload Videos'}
+              </h2>
+              <span className={`badge badge--${drop.status}`}>
+                <span className="badge__dot" />
+                {drop.status.replace('_', ' ')}
+              </span>
+            </div>
+          </div>
+
+          {/* Magic link reminder */}
+          <div className="banner banner--info">
+            <strong>🔗 Save this link!</strong> This is your private link to this submission. Bookmark it or copy it now.
+            <div className="magic-link-box">
+              <span className="magic-link-box__url">{window.location.href}</span>
+              <button className="magic-link-box__copy" onClick={handleCopyLink} title="Copy link">
+                {linkCopied ? '✓' : '📋'}
+              </button>
+            </div>
+          </div>
+
+          {/* Completed — show download */}
+          {drop.status === 'completed' && drop.result_key && (
+            <div className="card card--elevated text-center" style={{ padding: 'var(--space-2xl)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 'var(--space-md)' }}>📊</div>
+              <h3>Your results are ready!</h3>
+              <p className="text-muted mt-md mb-lg">
+                The pipeline has finished processing your {totalVideoCount} video(s).
+              </p>
+              <button
+                id="download-csv-btn"
+                className="btn btn--primary btn--large"
+                onClick={handleDownloadCSV}
+              >
+                ⬇ Download Results CSV
+              </button>
+            </div>
+          )}
+
+          {/* Processing / Submitted — waiting state */}
+          {(drop.status === 'processing' || drop.status === 'submitted') && (
+            <div className="card card--elevated text-center" style={{ padding: 'var(--space-2xl)' }}>
+              <div className="spinner spinner--large" style={{ margin: '0 auto var(--space-lg)' }} />
+              <h3>
+                {drop.status === 'processing' ? 'Your videos are being processed…' : 'Waiting for an admin to begin processing…'}
+              </h3>
+              <p className="text-muted mt-md">
+                Check back later. This page will show your results when they're ready.
+              </p>
+            </div>
+          )}
+
+          {/* Upload zone (only when awaiting) */}
+          {drop.status === 'awaiting_uploads' && (
+            <>
+              <FileDropzone onFilesSelected={handleFilesSelected} disabled={isUploading} />
+
+              {/* Pending uploads */}
+              {uploads.length > 0 && (
+                <div className="flex-col gap-sm mt-lg" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginTop: 'var(--space-lg)' }}>
+                  {uploads.map((u, i) => (
+                    <UploadProgress
+                      key={`${u.file.name}-${u.file.size}`}
+                      file={u.file}
+                      progress={u.progress}
+                      status={u.status}
+                      errorMsg={u.errorMsg}
+                      onRemove={u.status !== 'done' && u.status !== 'uploading' ? () => handleRemove(i) : null}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              {pendingCount > 0 && (
+                <div className="flex gap-md mt-lg" style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-lg)' }}>
+                  <button
+                    id="upload-all-btn"
+                    className="btn btn--primary btn--large w-full"
+                    onClick={handleUploadAll}
+                    disabled={isUploading}
+                    style={{ flex: 1 }}
+                  >
+                    {isUploading ? (
+                      <>
+                        <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
+                        Uploading…
+                      </>
+                    ) : (
+                      `📤 Upload ${pendingCount} File${pendingCount !== 1 ? 's' : ''}`
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Submit button (visible when at least 1 video exists) */}
+              {totalVideoCount > 0 && !isUploading && pendingCount === 0 && (
+                <div className="mt-lg" style={{ marginTop: 'var(--space-lg)' }}>
+                  <button
+                    id="submit-for-processing-btn"
+                    className="btn btn--primary btn--large w-full"
+                    onClick={handleSubmit}
+                    style={{ width: '100%' }}
+                  >
+                    ✅ Submit {totalVideoCount} Video{totalVideoCount !== 1 ? 's' : ''} for Processing
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Already uploaded videos */}
+          {videos.length > 0 && (
+            <div className="mt-xl" style={{ marginTop: 'var(--space-xl)' }}>
+              <h3 className="mb-md" style={{ marginBottom: 'var(--space-md)' }}>
+                Uploaded Videos ({videos.length})
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                {videos.map((v) => (
+                  <div key={v.id} className="file-item">
+                    <span className="file-item__icon">🎬</span>
+                    <div className="file-item__info">
+                      <div className="file-item__name">{v.original_name}</div>
+                      <div className="file-item__meta">
+                        {formatBytes(v.size_bytes)} · Uploaded {new Date(v.uploaded_at || v.created).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </>
+  );
+}
