@@ -36,7 +36,9 @@ export default async function handler(req, res) {
     }
 
     const tokenHash = crypto.createHash('sha256').update(drop_token).digest('hex').substring(0, 16);
-    if (!key.startsWith(`drops/${tokenHash}/`) && !key.startsWith(`results/${tokenHash}/`)) {
+    const dropId = pbData.items[0].id;
+    
+    if (!key.startsWith(`drops/${tokenHash}/`) && !key.startsWith(`results/${dropId}/`)) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
