@@ -3,7 +3,8 @@
  * Handles presigned URL fetching and direct-to-S3 uploads with progress tracking.
  */
 
-const SIDECAR_URL = import.meta.env.VITE_SIDECAR_URL || 'http://127.0.0.1:4000';
+// Vercel Serverless API routes
+const API_BASE = '/api';
 
 // Max chunk size for multipart uploads: 10MB
 const MULTIPART_THRESHOLD = 100 * 1024 * 1024; // 100MB → use multipart
@@ -17,7 +18,7 @@ const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
  * @returns {Promise<{presignedUrl: string, s3Key: string}>}
  */
 export async function getPresignedUploadUrl(dropToken, filename, contentType) {
-  const res = await fetch(`${SIDECAR_URL}/presign`, {
+  const res = await fetch(`${API_BASE}/presign`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ drop_token: dropToken, filename, content_type: contentType }),
@@ -37,7 +38,7 @@ export async function getPresignedUploadUrl(dropToken, filename, contentType) {
  */
 export async function getPresignedDownloadUrl(s3Key, dropToken) {
   const params = new URLSearchParams({ key: s3Key, drop_token: dropToken });
-  const res = await fetch(`${SIDECAR_URL}/presign-download?${params}`);
+  const res = await fetch(`${API_BASE}/presign-download?${params}`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Download presign failed' }));
     throw new Error(err.error || `Download presign failed (${res.status})`);
