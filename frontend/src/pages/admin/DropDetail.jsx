@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import VideoPreview from '../../components/VideoPreview';
 import pb from '../../utils/pb';
-import { formatBytes, getPresignedDownloadUrl } from '../../utils/s3Upload';
+import { formatBytes, getPresignedDownloadUrl, uploadAdminResultCSV } from '../../utils/s3Upload';
 
 const STATUS_TRANSITIONS = {
   awaiting_uploads: ['submitted'],
@@ -18,6 +18,10 @@ export default function AdminDropDetail() {
   const [drop, setDrop] = useState(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  const [csvFile, setCsvFile] = useState(null);
+  const [isCsvUploading, setIsCsvUploading] = useState(false);
+  const [csvProgress, setCsvProgress] = useState(0);
 
   useEffect(() => {
     if (!pb.authStore.isValid) {
@@ -52,6 +56,22 @@ export default function AdminDropDetail() {
       fetchDrop();
     } catch (e) {
       alert('Failed to update status: ' + e.message);
+    }
+  };
+
+  const handleCsvUpload = async () => {
+    if (!csvFile) return;
+    setIsCsvUploading(true);
+    try {
+      const { s3Key } = await uploadAdminResultCSV(pb.authStore.token, drop.id, csvFile, setCsvProgress);
+      await pb.collection('drops').update(id, { result_key: s3Key, status: 'completed' });
+      fetchDrop();
+    } catch (e) {
+      alert('Failed to upload results: ' + e.message);
+    } finally {
+      setIsCsvUploading(false);
+      setCsvFile(null);
+      setCsvProgress(0);
     }
   };
 
@@ -199,22 +219,48 @@ export default function AdminDropDetail() {
               </div>
             </div>
 
-            {/* CLI instructions */}
+            {/* CLI instructions & CSV Upload */}
             {drop.status === 'processing' && (
-              <div className="banner banner--info mt-lg" style={{ marginTop: 'var(--space-lg)' }}>
-                <strong>CLI Pull Command:</strong>
-                <pre style={{
-                  background: 'rgba(0,0,0,0.3)',
-                  padding: 'var(--space-sm) var(--space-md)',
-                  borderRadius: 'var(--radius-sm)',
-                  marginTop: 'var(--space-sm)',
-                  fontSize: '0.8rem',
-                  overflowX: 'auto',
-                  color: 'var(--text-accent)',
-                }}>
-                  python scripts/pull_drop.py {drop.token} ./batch_folder/
-                </pre>
-              </div>
+              <>
+                <div className="banner banner--info mt-lg" style={{ marginTop: 'var(--space-lg)' }}>
+                  <strong>CLI Pull Command:</strong>
+                  <pre style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    padding: 'var(--space-sm) var(--space-md)',
+                    borderRadius: 'var(--radius-sm)',
+                    marginTop: 'var(--space-sm)',
+                    fontSize: '0.8rem',
+                    overflowX: 'auto',
+                    color: 'var(--text-accent)',
+                  }}>
+                    python scripts/pull_drop.py {drop.token} ./batch_folder/
+                  </pre>
+                </div>
+
+                <div className="card mt-lg" style={{ borderColor: 'var(--accent-mid)', background: 'var(--bg-glass-hover)' }}>
+                  <h4 style={{ marginBottom: 'var(--space-sm)' }}>Return Processed Results</h4>
+                  <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: 'var(--space-md)' }}>
+                    Once you've run the Flick AI pipeline, upload the resulting CSV here to complete the workflow.
+                  </p>
+                  <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                    <input 
+                      type="file" 
+                      accept=".csv" 
+                      onChange={e => setCsvFile(e.target.files[0])}
+                      disabled={isCsvUploading}
+                      className="input"
+                      style={{ flex: 1, padding: '4px' }}
+                    />
+                    <button 
+                      className="btn btn--primary" 
+                      onClick={handleCsvUpload} 
+                      disabled={!csvFile || isCsvUploading}
+                    >
+                      {isCsvUploading ? `Uploading ${csvProgress}%` : 'Upload CSV'}
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
           </div>
 

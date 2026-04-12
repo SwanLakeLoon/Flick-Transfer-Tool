@@ -249,3 +249,29 @@ export function formatBytes(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
+
+/**
+ * Handle Admin specific CSV uploads.
+ * Validates against PocketBase Admin rules on Vercel Backend securely.
+ */
+export async function uploadAdminResultCSV(adminToken, dropId, file, onProgress, signal) {
+  const contentType = file.type || 'text/csv';
+  
+  const res = await fetch(`${API_BASE}/presign-admin`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': adminToken ? `Bearer ${adminToken}` : ''
+    },
+    body: JSON.stringify({ drop_id: dropId, filename: file.name, content_type: contentType }),
+  });
+  
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Admin Presign request failed' }));
+    throw new Error(err.error || `Admin Presign failed (${res.status})`);
+  }
+  
+  const { presignedUrl, s3Key } = await res.json();
+  await uploadToS3(presignedUrl, file, onProgress, signal);
+  return { s3Key };
+}
