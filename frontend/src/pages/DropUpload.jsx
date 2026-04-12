@@ -22,6 +22,7 @@ export default function DropUpload() {
   const [isUploading, setIsUploading] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [showAddMore, setShowAddMore] = useState(false);
 
   // Fetch the drop and its videos
   const fetchDrop = useCallback(async () => {
@@ -169,6 +170,7 @@ export default function DropUpload() {
   const pendingCount = uploads.filter(u => u.status === 'pending' || u.status === 'error').length;
   const doneCount = uploads.filter(u => u.status === 'done').length;
   const totalVideoCount = videos.length + doneCount;
+  const isSubmittedView = drop && drop.status === 'submitted' && !showAddMore;
 
   if (loading) {
     return (
@@ -201,6 +203,44 @@ export default function DropUpload() {
     );
   }
 
+  if (isSubmittedView) {
+    return (
+      <>
+        <Navbar />
+        <main className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 120px)' }}>
+          <div className="container container--narrow text-center">
+            <div className="card card--elevated" style={{ padding: 'var(--space-3xl) var(--space-xl)', background: 'linear-gradient(180deg, rgba(20, 17, 42, 0.8) 0%, rgba(20, 17, 42, 0.4) 100%)', borderTop: '2px solid var(--accent-mid)' }}>
+               {/* Massive Checkmark Hero Graphic */}
+               <div style={{ animation: 'slideIn 0.8s var(--ease-out)', marginBottom: 'var(--space-xl)' }}>
+                 <div style={{ width: '96px', height: '96px', borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--space-lg)', boxShadow: '0 0 60px var(--accent-glow)' }}>
+                   <span style={{ fontSize: '3.5rem', color: 'white', textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>✓</span>
+                 </div>
+                 <h2 style={{ fontSize: '2.5rem', marginBottom: 'var(--space-sm)' }}>Success!</h2>
+                 <p className="text-secondary" style={{ fontSize: '1.1rem' }}>
+                   Your {totalVideoCount} video{totalVideoCount !== 1 ? 's' : ''} have been securely submitted for processing.
+                 </p>
+               </div>
+
+               <div className="banner banner--info" style={{ textAlign: 'left', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                 <strong>🔗 Bookmark this page!</strong> This is your private link to monitor the job and retrieve your results.
+                 <div className="magic-link-box" style={{ background: 'rgba(0,0,0,0.5)', borderColor: 'transparent' }}>
+                   <span className="magic-link-box__url" style={{ fontSize: '0.9rem' }}>{window.location.href}</span>
+                   <button className="magic-link-box__copy" onClick={handleCopyLink} title="Copy link">
+                     {linkCopied ? '✓' : '📋'}
+                   </button>
+                 </div>
+               </div>
+
+               <button className="btn btn--secondary mt-lg" onClick={() => setShowAddMore(true)}>
+                 Need to add more files?
+               </button>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -212,7 +252,6 @@ export default function DropUpload() {
               <h2>
                 {drop.status === 'completed' ? '📊 Results Ready' :
                  drop.status === 'processing' ? '⏳ Processing…' :
-                 drop.status === 'submitted' ? '📬 Submitted' :
                  '📤 Upload Videos'}
               </h2>
               <span className={`badge badge--${drop.status}`}>
