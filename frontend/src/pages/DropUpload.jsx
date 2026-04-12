@@ -21,6 +21,7 @@ export default function DropUpload() {
   const [uploads, setUploads] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   // Fetch the drop and its videos
   const fetchDrop = useCallback(async () => {
@@ -127,6 +128,10 @@ export default function DropUpload() {
     await fetchDrop();
     setUploads(prev => prev.filter(u => u.status !== 'done'));
     setIsUploading(false);
+    
+    // Show success message
+    setSuccessMessage(`Successfully uploaded ${pendingIndices.length} file(s)!`);
+    setTimeout(() => setSuccessMessage(null), 3000);
   }, [drop, token, uploads, fetchDrop]);
 
   // Submit for processing
@@ -261,6 +266,12 @@ export default function DropUpload() {
           {(drop.status === 'awaiting_uploads' || drop.status === 'submitted') && (
             <>
               <FileDropzone onFilesSelected={handleFilesSelected} disabled={isUploading} />
+
+              {successMessage && (
+                <div className="banner banner--success mt-md" style={{ marginTop: 'var(--space-md)', textAlign: 'center', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                  ✅ {successMessage}
+                </div>
+              )}
 
               {/* Pending uploads */}
               {uploads.length > 0 && (

@@ -3,9 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import pb from '../../utils/pb';
 
-const STATUS_ORDER = ['submitted', 'processing', 'awaiting_uploads', 'completed'];
+const STATUS_ORDER = ['submitted', 'processing', 'completed'];
 const STATUS_LABELS = {
-  awaiting_uploads: 'Awaiting Uploads',
   submitted: 'Submitted',
   processing: 'Processing',
   completed: 'Completed',
@@ -29,6 +28,7 @@ export default function AdminDashboard() {
     try {
       const records = await pb.collection('drops').getFullList({
         sort: '-created',
+        filter: 'status != "awaiting_uploads"',
       });
       setDrops(records);
     } catch (e) {
@@ -47,7 +47,6 @@ export default function AdminDashboard() {
 
   const counts = {
     all: drops.length,
-    awaiting_uploads: drops.filter(d => d.status === 'awaiting_uploads').length,
     submitted: drops.filter(d => d.status === 'submitted').length,
     processing: drops.filter(d => d.status === 'processing').length,
     completed: drops.filter(d => d.status === 'completed').length,
@@ -67,12 +66,11 @@ export default function AdminDashboard() {
 
           {/* Stat cards */}
           <div className="stat-grid">
-            {['submitted', 'processing', 'awaiting_uploads', 'completed'].map(status => (
+            {['submitted', 'processing', 'completed'].map(status => (
               <div key={status} className="card stat-card" onClick={() => setFilter(status)} style={{ cursor: 'pointer' }}>
                 <div className="stat-card__value" style={{
                   color: status === 'submitted' ? 'var(--status-submitted)' :
                          status === 'processing' ? 'var(--status-processing)' :
-                         status === 'awaiting_uploads' ? 'var(--status-awaiting)' :
                          'var(--status-completed)'
                 }}>
                   {counts[status]}
