@@ -191,7 +191,7 @@ export async function uploadFile(dropToken, file, onProgress, signal) {
     onProgress(Math.round((totalLoaded / file.size) * 100));
   };
 
-  const maxConcurrency = 4;
+  const maxConcurrency = 6;
   let running = 0;
   let partIndex = 0;
   let masterError = null;

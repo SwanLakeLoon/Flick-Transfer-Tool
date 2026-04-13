@@ -30,6 +30,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'drop_token and filename are required.' });
   }
 
+  // Security: strict hex validation prevents filter injection
+  if (!/^[a-f0-9]{64}$/.test(drop_token)) {
+    return res.status(400).json({ error: 'Invalid drop token format.' });
+  }
+
   if (content_type && !ALLOWED_CONTENT_TYPES.includes(content_type)) {
     return res.status(400).json({ error: `Content type "${content_type}" is not allowed. Only video files are accepted.` });
   }

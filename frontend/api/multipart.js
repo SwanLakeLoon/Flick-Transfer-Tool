@@ -35,6 +35,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'drop_token is required.' });
   }
 
+  // Security: strict hex validation prevents filter injection
+  if (!/^[a-f0-9]{64}$/.test(drop_token)) {
+    return res.status(400).json({ error: 'Invalid drop token format.' });
+  }
+
   // Common authorization check for the drop token
   try {
     const pbRes = await fetch(
@@ -81,6 +86,12 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'uploadId, s3Key, and partNumbers array required.' });
       }
 
+      // Security: verify s3Key belongs to this drop's namespace
+      const tokenHash = crypto.createHash('sha256').update(drop_token).digest('hex').substring(0, 16);
+      if (!s3Key.startsWith(`drops/${tokenHash}/`)) {
+        return res.status(403).json({ error: 'Access denied: invalid key path.' });
+      }
+
       // Generate a presigned URL for each requested part
       const presignedUrls = await Promise.all(
         partNumbers.map(async (partNumber) => {
@@ -102,6 +113,12 @@ export default async function handler(req, res) {
       // 'parts' must be an array of { ETag, PartNumber }
       if (!uploadId || !s3Key || !Array.isArray(parts) || parts.length === 0) {
         return res.status(400).json({ error: 'uploadId, s3Key, and populated parts array required.' });
+      }
+
+      // Security: verify s3Key belongs to this drop's namespace
+      const tokenHash = crypto.createHash('sha256').update(drop_token).digest('hex').substring(0, 16);
+      if (!s3Key.startsWith(`drops/${tokenHash}/`)) {
+        return res.status(403).json({ error: 'Access denied: invalid key path.' });
       }
 
       // AWS S3 Complete requires parts to be strictly sorted by PartNumber

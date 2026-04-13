@@ -26,7 +26,8 @@ export default function AdminDropDetail() {
   const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
-    if (!pb.authStore.isValid) {
+    if (!pb.authStore.isValid || pb.authStore.record?.role !== 'admin') {
+      pb.authStore.clear();
       navigate('/admin', { replace: true });
       return;
     }

@@ -47,10 +47,10 @@ export default function DropUpload() {
       });
       setVideos(vidList);
       setLoading(false);
-    } catch (e) {
-      if (e.isAbort) return;
+    } catch (err) {
+      if (err.isAbort) return;
       setError('Failed to load submission. Please check your link and try again.');
-      console.error(e);
+      console.error(err);
       setLoading(false);
     }
   }, [token]);
@@ -120,8 +120,8 @@ export default function DropUpload() {
         });
 
         setUploads(prev => prev.map((u, i) => i === idx ? { ...u, status: 'done', progress: 100, s3Key } : u));
-      } catch (e) {
-        setUploads(prev => prev.map((u, i) => i === idx ? { ...u, status: 'error', errorMsg: e.message } : u));
+      } catch (err) {
+        setUploads(prev => prev.map((u, i) => i === idx ? { ...u, status: 'error', errorMsg: err.message } : u));
       }
     }
 
@@ -140,9 +140,12 @@ export default function DropUpload() {
     if (!drop) return;
     if (!confirm('Submit this batch for processing?')) return;
     try {
-      await pb.collection('drops').update(drop.id, { status: 'submitted' }, { qtoken: token });
+      await pb.collection('drops').update(drop.id, {
+        status: 'submitted',
+        video_count: videos.length,
+      }, { qtoken: token });
       fetchDrop();
-    } catch (e) {
+    } catch (err) {
       alert('Failed to submit. Please try again.');
     }
   };
@@ -153,8 +156,8 @@ export default function DropUpload() {
     try {
       const { presignedUrl } = await getPresignedDownloadUrl(drop.result_key, token);
       window.open(presignedUrl, '_blank');
-    } catch (e) {
-      alert('Failed to get download link: ' + e.message);
+    } catch (err) {
+      alert('Failed to get download link: ' + err.message);
     }
   };
 

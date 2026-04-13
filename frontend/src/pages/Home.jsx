@@ -24,8 +24,8 @@ export default function Home() {
       });
 
       navigate(`/drop/${token}`);
-    } catch (e) {
-      console.error('Failed to create drop:', e);
+    } catch (err) {
+      console.error('Failed to create drop:', err);
       alert('Failed to start submission. Please try again.');
     } finally {
       setLoading(false);

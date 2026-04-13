@@ -1,6 +1,5 @@
 import { useCallback, useState, useRef } from 'react';
 
-const ALLOWED_TYPES = ['video/quicktime', 'video/mp4', 'video/x-msvideo', 'video/avi', ''];
 const ALLOWED_EXTENSIONS = ['.mov', '.mp4', '.avi'];
 
 export default function FileDropzone({ onFilesSelected, disabled }) {

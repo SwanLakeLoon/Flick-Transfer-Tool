@@ -25,6 +25,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'key and drop_token are required.' });
   }
 
+  // Security: strict hex validation prevents filter injection
+  if (!/^[a-f0-9]{64}$/.test(drop_token)) {
+    return res.status(400).json({ error: 'Invalid drop token format.' });
+  }
+
   try {
     const pbRes = await fetch(
       `${PB_URL}/api/collections/drops/records?filter=(token="${drop_token}")&qtoken=${drop_token}&perPage=1`

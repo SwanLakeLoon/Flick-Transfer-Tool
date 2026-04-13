@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import pb from '../../utils/pb';
 
@@ -19,7 +19,8 @@ export default function AdminDashboard() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!pb.authStore.isValid) {
+    if (!pb.authStore.isValid || pb.authStore.record?.role !== 'admin') {
+      pb.authStore.clear();
       navigate('/admin', { replace: true });
       return;
     }
@@ -141,7 +142,7 @@ export default function AdminDashboard() {
 
           {/* Bulk Actions Banner */}
           {selectedDrops.length > 0 && (
-            <div className="banner banner--error flex items-center justify-between mb-lg" style={{ animation: 'fadeIn 0.2s ease-out', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', animation: 'fadeIn 0.2s ease-out', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-lg)' }}>
               <div>
                 <strong style={{ color: '#fca5a5' }}>{selectedDrops.length} drop{selectedDrops.length !== 1 ? 's' : ''} selected</strong>
               </div>

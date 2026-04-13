@@ -23,10 +23,18 @@ export default function AdminLogin() {
     setError(null);
     try {
       await pb.collection('users').authWithPassword(email, password);
+
+      // Security: verify the authenticated user is actually an admin
+      if (pb.authStore.record?.role !== 'admin') {
+        pb.authStore.clear();
+        setError('Access denied. Admin privileges required.');
+        return;
+      }
+
       navigate('/admin/dashboard');
-    } catch (e) {
+    } catch (err) {
       setError('Invalid credentials. Please try again.');
-      console.error(e);
+      console.error(err);
     } finally {
       setLoading(false);
     }
