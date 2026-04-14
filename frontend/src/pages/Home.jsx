@@ -58,15 +58,23 @@ export default function Home() {
                 disabled={loading}
                 style={{ textAlign: 'center', width: '100%', marginBottom: '0.75rem' }}
               />
-              <input
-                type="date"
-                className="input"
-                value={recordingDate}
-                onChange={(e) => setRecordingDate(e.target.value)}
-                disabled={loading}
-                title="Recording Date (Optional)"
-                style={{ textAlign: 'center', width: '100%', marginBottom: '0.75rem', colorScheme: 'dark' }}
-              />
+              <div style={{ position: 'relative', width: '100%', marginBottom: '0.75rem' }}>
+                <input
+                  type="date"
+                  className="input"
+                  value={recordingDate}
+                  onChange={(e) => setRecordingDate(e.target.value)}
+                  disabled={loading}
+                  style={{ textAlign: 'center', width: '100%', colorScheme: 'dark', color: recordingDate ? 'var(--text-main)' : 'transparent' }}
+                />
+                {!recordingDate && (
+                  <span
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', color: 'var(--text-muted)', fontSize: '0.95rem' }}
+                  >
+                    Recording Date (Optional)
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
                 className="input"
