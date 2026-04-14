@@ -161,6 +161,17 @@ export default function DropUpload() {
     }
   };
 
+  // Remove an already-uploaded video (before submission)
+  const handleRemoveVideo = async (videoId) => {
+    if (!confirm('Remove this video from your submission?')) return;
+    try {
+      await pb.collection('videos').delete(videoId);
+      setVideos(prev => prev.filter(v => v.id !== videoId));
+    } catch (err) {
+      alert('Failed to remove video: ' + err.message);
+    }
+  };
+
   // Copy magic link
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -385,6 +396,13 @@ export default function DropUpload() {
                         {formatBytes(v.size_bytes)} · Uploaded {new Date(v.uploaded_at || v.created).toLocaleDateString()}
                       </div>
                     </div>
+                    {!isLocked && (
+                      <div className="file-item__actions">
+                        <button className="file-item__remove" onClick={() => handleRemoveVideo(v.id)} title="Remove video">
+                          ✕
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

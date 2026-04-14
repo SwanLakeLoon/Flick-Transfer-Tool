@@ -18,14 +18,18 @@ export default function Home() {
       crypto.getRandomValues(tokenBytes);
       const token = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-      await pb.collection('drops').create({
+      const dropData = {
         token,
         status: 'awaiting_uploads',
         video_count: 0,
         uploader_name: uploaderName.trim() || '',
-        recording_date: recordingDate || '',
         recording_location: recordingLocation.trim() || '',
-      });
+      };
+      if (recordingDate) {
+        dropData.recording_date = recordingDate;
+      }
+
+      await pb.collection('drops').create(dropData);
 
       navigate(`/drop/${token}`);
     } catch (err) {
