@@ -175,14 +175,24 @@ export default function AdminDropDetail() {
                 <h2 style={{ marginBottom: 'var(--space-sm)' }}>
                   Drop <code style={{ color: 'var(--text-accent)', fontSize: '0.85em' }}>{drop.token?.substring(0, 16)}…</code>
                 </h2>
-                <div style={{ marginBottom: 'var(--space-sm)' }}>
-                  <span className={`badge badge--${drop.status}`} style={{ marginRight: 'var(--space-sm)' }}>
+                <div style={{ marginBottom: 'var(--space-sm)', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  <span className={`badge badge--${drop.status}`}>
                     <span className="badge__dot" />
                     {drop.status?.replace('_', ' ')}
                   </span>
                   <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: drop.uploader_name ? 'var(--text-main)' : 'var(--text-muted)' }}>
                     👤 {drop.uploader_name || 'Anonymous Uploader'}
                   </span>
+                  {drop.recording_date && (
+                    <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-main)' }}>
+                      📅 {new Date(drop.recording_date).toLocaleDateString()}
+                    </span>
+                  )}
+                  {drop.recording_location && (
+                    <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-main)' }}>
+                      📍 {drop.recording_location}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex gap-sm" style={{ display: 'flex', gap: 'var(--space-sm)' }}>

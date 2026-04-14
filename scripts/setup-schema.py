@@ -96,6 +96,8 @@ def main():
                 {"name": "status",      "type": "select", "required": True,
                  "values": ["awaiting_uploads", "submitted", "processing", "completed"], "maxSelect": 1},
                 {"name": "uploader_name","type": "text"},
+                {"name": "recording_date","type": "date"},
+                {"name": "recording_location","type": "text"},
                 {"name": "result_key",  "type": "text"},
                 {"name": "video_count", "type": "number"},
                 {"name": "expires_at",  "type": "date"},

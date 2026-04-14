@@ -7,6 +7,8 @@ export default function Home() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploaderName, setUploaderName] = useState('');
+  const [recordingDate, setRecordingDate] = useState('');
+  const [recordingLocation, setRecordingLocation] = useState('');
 
   const handleStartDrop = async () => {
     setLoading(true);
@@ -21,6 +23,8 @@ export default function Home() {
         status: 'awaiting_uploads',
         video_count: 0,
         uploader_name: uploaderName.trim() || '',
+        recording_date: recordingDate || '',
+        recording_location: recordingLocation.trim() || '',
       });
 
       navigate(`/drop/${token}`);
@@ -51,6 +55,24 @@ export default function Home() {
                 placeholder="Your Name (Optional)"
                 value={uploaderName}
                 onChange={(e) => setUploaderName(e.target.value)}
+                disabled={loading}
+                style={{ textAlign: 'center', width: '100%', marginBottom: '0.75rem' }}
+              />
+              <input
+                type="date"
+                className="input"
+                value={recordingDate}
+                onChange={(e) => setRecordingDate(e.target.value)}
+                disabled={loading}
+                title="Recording Date (Optional)"
+                style={{ textAlign: 'center', width: '100%', marginBottom: '0.75rem', colorScheme: 'dark' }}
+              />
+              <input
+                type="text"
+                className="input"
+                placeholder="Recording Location (Optional)"
+                value={recordingLocation}
+                onChange={(e) => setRecordingLocation(e.target.value)}
                 disabled={loading}
                 style={{ textAlign: 'center', width: '100%', marginBottom: '1rem' }}
               />
