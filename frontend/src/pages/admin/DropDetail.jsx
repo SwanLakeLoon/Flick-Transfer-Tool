@@ -24,6 +24,7 @@ export default function AdminDropDetail() {
   const [csvProgress, setCsvProgress] = useState(0);
 
   const [linkCopied, setLinkCopied] = useState(false);
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
 
   useEffect(() => {
     if (!pb.authStore.isValid || pb.authStore.record?.role !== 'admin') {
@@ -105,16 +106,36 @@ export default function AdminDropDetail() {
   const handleDownloadVideo = async (video) => {
     try {
       const { presignedUrl } = await getPresignedDownloadUrl(video.s3_key, drop.token);
-      // Open download in new tab
       const a = document.createElement('a');
       a.href = presignedUrl;
       a.download = video.original_name;
-      a.target = '_blank';
       document.body.appendChild(a);
       a.click();
       a.remove();
     } catch (e) {
       alert('Failed to get download link: ' + e.message);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (videos.length === 0) return;
+    setIsDownloadingAll(true);
+    try {
+      for (let i = 0; i < videos.length; i++) {
+        const { presignedUrl } = await getPresignedDownloadUrl(videos[i].s3_key, drop.token);
+        const a = document.createElement('a');
+        a.href = presignedUrl;
+        a.download = videos[i].original_name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // Brief delay between downloads so the browser doesn't block them
+        if (i < videos.length - 1) await new Promise(r => setTimeout(r, 500));
+      }
+    } catch (e) {
+      alert('Failed to download: ' + e.message);
+    } finally {
+      setIsDownloadingAll(false);
     }
   };
 
@@ -306,7 +327,6 @@ export default function AdminDropDetail() {
                       const a = document.createElement('a');
                       a.href = presignedUrl;
                       a.download = drop.result_key.split('/').pop().replace(/^\d+_/, '');
-                      a.target = '_blank';
                       document.body.appendChild(a);
                       a.click();
                       a.remove();
@@ -322,9 +342,21 @@ export default function AdminDropDetail() {
           )}
 
           {/* Video list */}
-          <h3 className="mb-md" style={{ marginBottom: 'var(--space-md)' }}>
-            Videos ({videos.length})
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
+            <h3>
+              Videos ({videos.length})
+            </h3>
+            {videos.length > 0 && (
+              <button
+                className="btn btn--primary"
+                style={{ fontSize: '0.8rem', padding: '6px 14px' }}
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll}
+              >
+                {isDownloadingAll ? '⏳ Downloading...' : '⬇ Download All'}
+              </button>
+            )}
+          </div>
 
           {videos.length === 0 ? (
             <div className="card text-center" style={{ padding: 'var(--space-2xl)' }}>

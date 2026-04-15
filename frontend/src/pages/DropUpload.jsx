@@ -147,7 +147,7 @@ export default function DropUpload() {
       fetchDrop();
     } catch (err) {
       console.error('Submit error:', err);
-      alert(`Failed to submit (${err.status || '?'}): ${err.message || JSON.stringify(err)}`);
+      alert('Failed to submit. Please try again. (' + (err.status || err.message || 'Unknown error') + ')');
     }
   };
 

@@ -47,9 +47,13 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
+    // Extract clean filename from the S3 key (strip timestamp prefix)
+    const rawFilename = key.split('/').pop().replace(/^\d+_/, '') || 'download';
+
     const command = new GetObjectCommand({
       Bucket: BUCKET,
       Key: key,
+      ResponseContentDisposition: `attachment; filename="${rawFilename}"`,
     });
 
     const presignedUrl = await getSignedUrl(s3, command, { expiresIn: PRESIGN_EXPIRY });
