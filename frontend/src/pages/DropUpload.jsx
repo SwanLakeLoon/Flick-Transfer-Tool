@@ -30,7 +30,7 @@ export default function DropUpload() {
       // Pass token as query param for PB API rule: `token = @request.query.token`
       const results = await pb.collection('drops').getList(1, 1, {
         filter: `token="${token}"`,
-        qtoken: token,
+        query: { qtoken: token },
       });
       if (results.items.length === 0) {
         setError('Drop not found. Please check your link.');
@@ -43,7 +43,7 @@ export default function DropUpload() {
       const vidList = await pb.collection('videos').getFullList({
         filter: `drop="${dropRecord.id}"`,
         sort: '-created',
-        qtoken: token,
+        query: { qtoken: token },
       });
       setVideos(vidList);
       setLoading(false);
@@ -143,7 +143,7 @@ export default function DropUpload() {
       await pb.collection('drops').update(drop.id, {
         status: 'submitted',
         video_count: videos.length,
-      }, { qtoken: token });
+      }, { query: { qtoken: token } });
       fetchDrop();
     } catch (err) {
       alert('Failed to submit. Please try again.');
@@ -165,7 +165,7 @@ export default function DropUpload() {
   const handleRemoveVideo = async (videoId) => {
     if (!confirm('Remove this video from your submission?')) return;
     try {
-      await pb.collection('videos').delete(videoId);
+      await pb.collection('videos').delete(videoId, { query: { qtoken: token } });
       setVideos(prev => prev.filter(v => v.id !== videoId));
     } catch (err) {
       alert('Failed to remove video: ' + err.message);
