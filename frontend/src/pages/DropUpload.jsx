@@ -146,9 +146,8 @@ export default function DropUpload() {
       }, { query: { qtoken: token } });
       fetchDrop();
     } catch (err) {
-      console.error('Submit error:', err?.data || err);
-      const detail = err?.data?.data ? JSON.stringify(err.data.data) : (err?.message || 'Unknown error');
-      alert('Failed to submit: ' + detail);
+      console.error('Submit error:', err);
+      alert(`Failed to submit (${err.status || '?'}): ${err.message || JSON.stringify(err)}`);
     }
   };
 
