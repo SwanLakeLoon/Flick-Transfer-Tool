@@ -25,6 +25,7 @@ export default function AdminDropDetail() {
 
   const [linkCopied, setLinkCopied] = useState(false);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
+  const [selectedVideos, setSelectedVideos] = useState([]);
 
   useEffect(() => {
     if (!pb.authStore.isValid || pb.authStore.record?.role !== 'admin') {
@@ -117,25 +118,42 @@ export default function AdminDropDetail() {
     }
   };
 
-  const handleDownloadAll = async () => {
-    if (videos.length === 0) return;
+  const handleDownloadSelected = async () => {
+    const toDownload = selectedVideos.length > 0
+      ? videos.filter(v => selectedVideos.includes(v.id))
+      : videos;
+    if (toDownload.length === 0) return;
     setIsDownloadingAll(true);
     try {
-      for (let i = 0; i < videos.length; i++) {
-        const { presignedUrl } = await getPresignedDownloadUrl(videos[i].s3_key, drop.token);
+      for (let i = 0; i < toDownload.length; i++) {
+        const { presignedUrl } = await getPresignedDownloadUrl(toDownload[i].s3_key, drop.token);
         const a = document.createElement('a');
         a.href = presignedUrl;
-        a.download = videos[i].original_name;
+        a.download = toDownload[i].original_name;
         document.body.appendChild(a);
         a.click();
         a.remove();
         // Brief delay between downloads so the browser doesn't block them
-        if (i < videos.length - 1) await new Promise(r => setTimeout(r, 500));
+        if (i < toDownload.length - 1) await new Promise(r => setTimeout(r, 500));
       }
     } catch (e) {
       alert('Failed to download: ' + e.message);
     } finally {
       setIsDownloadingAll(false);
+    }
+  };
+
+  const toggleVideoSelect = (id) => {
+    setSelectedVideos(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllVideos = () => {
+    if (selectedVideos.length === videos.length) {
+      setSelectedVideos([]);
+    } else {
+      setSelectedVideos(videos.map(v => v.id));
     }
   };
 
@@ -344,30 +362,67 @@ export default function AdminDropDetail() {
           {/* Video list */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
             <h3>
-              Videos ({videos.length})
+              Files ({videos.length})
             </h3>
-            {videos.length > 0 && (
-              <button
-                className="btn btn--primary"
-                style={{ fontSize: '0.8rem', padding: '6px 14px' }}
-                onClick={handleDownloadAll}
-                disabled={isDownloadingAll}
-              >
-                {isDownloadingAll ? '⏳ Downloading...' : '⬇ Download All'}
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+              {selectedVideos.length > 0 && (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-accent)', fontWeight: 600 }}>
+                  {selectedVideos.length} selected
+                </span>
+              )}
+              {videos.length > 0 && (
+                <button
+                  className="btn btn--primary"
+                  style={{ fontSize: '0.8rem', padding: '6px 14px' }}
+                  onClick={handleDownloadSelected}
+                  disabled={isDownloadingAll}
+                >
+                  {isDownloadingAll
+                    ? '⏳ Downloading...'
+                    : selectedVideos.length > 0
+                      ? `⬇ Download ${selectedVideos.length} File${selectedVideos.length !== 1 ? 's' : ''}`
+                      : '⬇ Download All'}
+                </button>
+              )}
+            </div>
           </div>
 
           {videos.length === 0 ? (
             <div className="card text-center" style={{ padding: 'var(--space-2xl)' }}>
-              <p className="text-muted">No videos uploaded yet.</p>
+              <p className="text-muted">No files uploaded yet.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+              {/* Select all row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', padding: '0 var(--space-md)' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedVideos.length === videos.length && videos.length > 0}
+                  onChange={toggleSelectAllVideos}
+                  style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                />
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {selectedVideos.length === videos.length ? 'Deselect all' : 'Select all'}
+                </span>
+              </div>
               {videos.map(v => (
-                <div key={v.id} className="card" style={{ padding: 'var(--space-md)' }}>
-                  <div className="flex items-center justify-between" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-md)' }}>
-                    <div className="flex items-center gap-md" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flex: 1, minWidth: 0 }}>
+                <div
+                  key={v.id}
+                  className="card"
+                  style={{
+                    padding: 'var(--space-md)',
+                    background: selectedVideos.includes(v.id) ? 'rgba(99, 102, 241, 0.08)' : '',
+                    borderColor: selectedVideos.includes(v.id) ? 'var(--accent-mid)' : '',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-md)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flex: 1, minWidth: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedVideos.includes(v.id)}
+                        onChange={() => toggleVideoSelect(v.id)}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px', flexShrink: 0 }}
+                      />
                       <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>🎬</span>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 500, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -378,7 +433,7 @@ export default function AdminDropDetail() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-sm" style={{ display: 'flex', gap: 'var(--space-sm)', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-sm)', flexShrink: 0 }}>
                       <VideoPreview s3Key={v.s3_key} dropToken={drop.token} filename={v.original_name} />
                       <button
                         className="btn btn--secondary"
