@@ -124,20 +124,26 @@ export default function AdminDropDetail() {
       : videos;
     if (toDownload.length === 0) return;
     setIsDownloadingAll(true);
+    let downloaded = 0;
     try {
-      for (let i = 0; i < toDownload.length; i++) {
-        const { presignedUrl } = await getPresignedDownloadUrl(toDownload[i].s3_key, drop.token);
+      for (const file of toDownload) {
+        const { presignedUrl } = await getPresignedDownloadUrl(file.s3_key, drop.token);
+        // Fetch the file as a blob so the browser treats the save as local (not a popup)
+        const resp = await fetch(presignedUrl);
+        if (!resp.ok) throw new Error(`Failed to fetch ${file.original_name}`);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = presignedUrl;
-        a.download = toDownload[i].original_name;
+        a.href = blobUrl;
+        a.download = file.original_name;
         document.body.appendChild(a);
         a.click();
         a.remove();
-        // Brief delay between downloads so the browser doesn't block them
-        if (i < toDownload.length - 1) await new Promise(r => setTimeout(r, 500));
+        URL.revokeObjectURL(blobUrl);
+        downloaded++;
       }
     } catch (e) {
-      alert('Failed to download: ' + e.message);
+      alert(`Downloaded ${downloaded}/${toDownload.length}. Error: ${e.message}`);
     } finally {
       setIsDownloadingAll(false);
     }
