@@ -164,12 +164,12 @@ export default function DropUpload() {
 
   // Remove an already-uploaded video (before submission)
   const handleRemoveVideo = async (videoId) => {
-    if (!confirm('Remove this video from your submission?')) return;
+    if (!confirm('Remove this file from your submission?')) return;
     try {
       await pb.collection('videos').delete(videoId, { query: { qtoken: token } });
       setVideos(prev => prev.filter(v => v.id !== videoId));
     } catch (err) {
-      alert('Failed to remove video: ' + err.message);
+      alert('Failed to remove file: ' + err.message);
     }
   };
 
@@ -232,7 +232,7 @@ export default function DropUpload() {
                  </div>
                  <h2 style={{ fontSize: '2.5rem', marginBottom: 'var(--space-sm)' }}>Success!</h2>
                  <p className="text-secondary" style={{ fontSize: '1.1rem' }}>
-                   Your {totalVideoCount} video{totalVideoCount !== 1 ? 's' : ''} have been securely submitted for processing.
+                   Your {totalVideoCount} file{totalVideoCount !== 1 ? 's' : ''} have been securely submitted for processing.
                  </p>
                </div>
 
@@ -267,7 +267,7 @@ export default function DropUpload() {
               <h2>
                 {drop.status === 'completed' ? '📊 Results Ready' :
                  drop.status === 'processing' ? '⏳ Processing…' :
-                 '📤 Upload Videos'}
+                 '📤 Upload Files'}
               </h2>
               <span className={`badge badge--${drop.status}`}>
                 <span className="badge__dot" />
@@ -293,7 +293,7 @@ export default function DropUpload() {
               <div style={{ fontSize: '3rem', marginBottom: 'var(--space-md)' }}>📊</div>
               <h3>Your results are ready!</h3>
               <p className="text-muted mt-md mb-lg">
-                The pipeline has finished processing your {totalVideoCount} video(s).
+                The pipeline has finished processing your {totalVideoCount} file(s).
               </p>
               <button
                 id="download-csv-btn"
@@ -309,7 +309,7 @@ export default function DropUpload() {
           {(drop.status === 'processing') && (
             <div className="card card--elevated text-center" style={{ padding: 'var(--space-2xl)' }}>
               <div className="spinner spinner--large" style={{ margin: '0 auto var(--space-lg)' }} />
-              <h3>Your videos are being processed…</h3>
+              <h3>Your files are being processed…</h3>
               <p className="text-muted mt-md">
                 Check back later. This page will show your results when they're ready.
               </p>
@@ -374,7 +374,7 @@ export default function DropUpload() {
                     onClick={handleSubmit}
                     style={{ width: '100%' }}
                   >
-                    ✅ Submit {totalVideoCount} Video{totalVideoCount !== 1 ? 's' : ''} for Processing
+                    ✅ Submit {totalVideoCount} File{totalVideoCount !== 1 ? 's' : ''} for Processing
                   </button>
                 </div>
               )}
@@ -385,7 +385,7 @@ export default function DropUpload() {
           {videos.length > 0 && (
             <div className="mt-xl" style={{ marginTop: 'var(--space-xl)' }}>
               <h3 className="mb-md" style={{ marginBottom: 'var(--space-md)' }}>
-                Uploaded Videos ({videos.length})
+                Uploaded Files ({videos.length})
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
                 {videos.map((v) => (
@@ -399,7 +399,7 @@ export default function DropUpload() {
                     </div>
                     {!isLocked && (
                       <div className="file-item__actions">
-                        <button className="file-item__remove" onClick={() => handleRemoveVideo(v.id)} title="Remove video">
+                        <button className="file-item__remove" onClick={() => handleRemoveVideo(v.id)} title="Remove file">
                           ✕
                         </button>
                       </div>

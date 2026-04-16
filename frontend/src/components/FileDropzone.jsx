@@ -1,6 +1,6 @@
 import { useCallback, useState, useRef } from 'react';
 
-const ALLOWED_EXTENSIONS = ['.mov', '.mp4', '.avi'];
+const ALLOWED_EXTENSIONS = ['.mov', '.mp4', '.avi', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif', '.tiff', '.tif', '.bmp'];
 
 export default function FileDropzone({ onFilesSelected, disabled }) {
   const [active, setActive] = useState(false);
@@ -18,7 +18,7 @@ export default function FileDropzone({ onFilesSelected, disabled }) {
       }
     }
     if (rejected.length > 0) {
-      alert(`These files were rejected (not video files):\n${rejected.join('\n')}`);
+      alert(`These files were rejected (unsupported format):\n${rejected.join('\n')}`);
     }
     return valid;
   }, []);
@@ -60,16 +60,16 @@ export default function FileDropzone({ onFilesSelected, disabled }) {
     >
       <div className="dropzone__icon">📁</div>
       <div className="dropzone__title">
-        {active ? 'Drop your videos here!' : 'Drag & drop video files'}
+        {active ? 'Drop your files here!' : 'Drag & drop files'}
       </div>
       <div className="dropzone__subtitle">
-        or click to browse · .MOV, .MP4, .AVI accepted
+        or click to browse · Videos & images accepted
       </div>
       <input
         ref={inputRef}
         type="file"
         multiple
-        accept=".mov,.mp4,.avi"
+        accept=".mov,.mp4,.avi,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.tiff,.tif,.bmp"
         style={{ display: 'none' }}
         onChange={handleInputChange}
       />

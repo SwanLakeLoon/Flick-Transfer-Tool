@@ -50,7 +50,7 @@ export default function Home() {
               <span className="text-gradient">Flick</span> File Transfer
             </h1>
             <p className="hero__subtitle">
-              Securely upload video batches for processing. Get your results back via a private, anonymous link.
+              Securely upload video and image batches for processing. Get your results back via a private, anonymous link.
             </p>
             <div style={{ maxWidth: '300px', margin: '0 auto 1rem auto' }}>
               <input

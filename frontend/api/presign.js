@@ -18,6 +18,7 @@ const PB_URL = process.env.POCKETBASE_URL || 'http://127.0.0.1:8090';
 
 const ALLOWED_CONTENT_TYPES = [
   'video/quicktime', 'video/mp4', 'video/x-msvideo', 'video/avi',
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/tiff', 'image/bmp',
   'application/octet-stream',
 ];
 
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
   }
 
   if (content_type && !ALLOWED_CONTENT_TYPES.includes(content_type)) {
-    return res.status(400).json({ error: `Content type "${content_type}" is not allowed. Only video files are accepted.` });
+    return res.status(400).json({ error: `Content type "${content_type}" is not allowed. Only video and image files are accepted.` });
   }
 
   try {
